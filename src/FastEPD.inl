@@ -3151,13 +3151,13 @@ int bbepFullUpdate(FASTEPDSTATE *pState, int iClearMode, bool bKeepOn, BB_RECT *
                     if (iStartCol > 0 || iEndCol < pState->native_width-1) { // There is a region rectangle defined, clip the output to it
                         uint32_t *src, *dst;
                         src = (uint32_t *)u8Cache;
-                        dst = (uint32_t *)pState->dma_buf;
-                        for (n=0; n<pState->native_width/16; n++) { // mask off non-changing pixels to 0s
-                            dst[n] &= src[n];
+                        dst = (uint32_t *)d; // the current half of the double buffer, not always offset 0
+                        for (n=0; n<pState->native_width/16; n++) { // keep pixels inside the rect, set the rest to the skip code
+                            dst[n] = (dst[n] & src[n]) | ~src[n];
                         }
                     }
                 } else { // outside the clip rectangle
-                    memset(d, 0, pState->native_width/4);
+                    memset(d, 0xff, pState->native_width/4); // 0xff = skip, as in bbepClear
                 }
                 bbepWriteRow(pState, d, (pState->native_width / 4), (i!=0));
                 iDMAOff ^= (pState->native_width / 4); // toggle offset
